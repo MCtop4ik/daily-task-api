@@ -1,30 +1,18 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 
-# Твой API токен, который ты получил от @BotFather
-TOKEN = '7441012240:AAGzlI9z_MaigMXBKX9paqQueGj-NF2h8Cs'
-
-
-def start(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text('Привет, я твой бот!')
-
+async def start(update: Update, context: CallbackContext) -> None:
+    await update.message.reply_text('Привет!')
 
 def main():
-    # Создание апдейтера и диспетчера
-    updater = Updater(TOKEN)
+    # Создаём приложение (это эквивалентно Updater в старых версиях)
+    application = Application.builder().token('7441012240:AAGzlI9z_MaigMXBKX9paqQueGj-NF2h8Cs').build()
 
-    # Получаем диспетчер для регистрации обработчиков
-    dispatcher = updater.dispatcher
+    # Добавляем обработчик команды /start
+    application.add_handler(CommandHandler('start', start))
 
-    # Регистрируем обработчик команды /start
-    dispatcher.add_handler(CommandHandler("start", start))
-
-    # Начинаем получение обновлений
-    updater.start_polling()
-
-    # Ожидаем завершения работы
-    updater.idle()
-
+    # Запускаем бота
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
