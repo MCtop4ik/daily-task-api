@@ -1,7 +1,10 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from datetime import datetime
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app)
 
 daily_tasks = [
     {
@@ -37,9 +40,20 @@ def get_available_tasks():
     return available_tasks
 
 
+@app.before_request
+def add_cors_headers():
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'CORS preflight'})
+        response.headers['Access-Control-Allow-Origin'] = 'http://sparkydolphins.ru'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+
+
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     return jsonify(get_available_tasks())
+
 
 if __name__ == '__main__':
     app.run(debug=True)
