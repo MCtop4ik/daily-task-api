@@ -1,18 +1,16 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 
+
 async def start(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text('Привет!')
 
+
 def main():
-    # Создаём приложение (это эквивалентно Updater в старых версиях)
     application = Application.builder().token('7441012240:AAGzlI9z_MaigMXBKX9paqQueGj-NF2h8Cs').build()
-
-    # Добавляем обработчик команды /start
     application.add_handler(CommandHandler('start', start))
-
-    # Запускаем бота
     application.run_polling()
+
 
 if __name__ == '__main__':
     main()

@@ -1,3 +1,7 @@
+import hashlib
+import hmac
+import json
+
 from flask import Flask, jsonify, request
 from datetime import datetime
 
@@ -58,6 +62,30 @@ def get_available_tasks():
     return available_tasks
 
 
+BOT_TOKEN = '7441012240:AAGzlI9z_MaigMXBKX9paqQueGj-NF2h8Cs'
+secret_key = hmac.new(BOT_TOKEN.encode(), b"WebAppData", hashlib.sha256).digest()
+
+
+@app.route('/auth', methods=['POST'])
+def auth():
+    data = request.json
+
+    signature = hmac.new(secret_key, msg=json.dumps(data).encode(), digestmod=hashlib.sha256).hexdigest()
+
+    if signature == data['hash']:
+        return jsonify({
+            'status': 'success',
+            'user': {
+                'id': data['id'],
+                'username': data['username'],
+                'first_name': data['first_name'],
+                'last_name': data['last_name']
+            }
+        })
+    else:
+        return jsonify({'status': 'error', 'message': 'Invalid signature'}), 400
+
+
 @app.before_request
 def add_cors_headers():
     if request.method == 'OPTIONS':
@@ -74,4 +102,4 @@ def get_tasks():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, ssl_context='adhoc')
