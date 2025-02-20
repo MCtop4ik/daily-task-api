@@ -1,89 +1,44 @@
-import hashlib
-import hmac
-import json
+import sqlite3
 
 from flask import Flask, jsonify, request
 from datetime import datetime
 
 from flask_cors import CORS
 
+conn = sqlite3.connect('tg_bot/users.db')
+cursor = conn.cursor()
+
+tasks_connection = sqlite3.connect('tasks.db')
+tasks_cursor = tasks_connection.cursor()
+
+tasks_cursor.execute('''CREATE TABLE IF NOT EXISTS tasks 
+                  (id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                   task TEXT NOT NULL, 
+                   date TEXT NOT NULL,
+                   solution TEXT,
+                   image TEXT)''')
+
 app = Flask(__name__)
 CORS(app)
 
-daily_tasks = [
-    {
-        "task": """ В честь тыквенного спаса дед Архип собрал 202500 тыкв, 
-                    однако некоторые из них оказались испорченными. 
-                    Архипу известно, что среди каждых 500 тыкв есть хотя бы одна порченая. 
-                    Какое наибольшее количество хороших тыкв мог собрать Архип?""",
-        "date": "17/02/2025",
-        "solution": None,
-        "image": "assets/meme.jpg"
-    },
-    {
-        "task": """После учебы лицеисты разбегаются по своим домам, 
-            каждый идет по кратчайшему расстоянию (по прямой от школы до дома). 
-            Учитель географии узнал, что суммарное расстояние, 
-            пройденное ими после школы на север равно расстоянию, 
-            пройденному на юг, а также что расстояние, 
-            пройденное на восток равно расстоянию, пройденному на запад. 
-            Обязательно ли то же самое будет выполняться
-             для северо востока и югозапада; северозапада и юговостока? 
-             (считаем расстояние, пройденное в опр направлении как проекцию на прямую этого направления)""",
-        "date": "17/02/2025",
-        "solution": None,
-        "image": None
-    },
-    {
-        "task": """
-        Найти точку, равноудалённую от четырёх точек
-            Рассмотрим треугольник \\(ABC\\). Пусть:
-            \\( I \\) — центр вписанной окружности треугольника \\( ABC \\).
-            \\( I_a \\) — центр вневписанной окружности, противоположной вершине \\( A \\).
-            \\( L \\) — точка пересечения отрезка \\( II_a \\) с дугой описанной окружности, не содержащей точку \\( A \\).
-            Докажите, что точка \\( L \\) равноудалена от точек \\( I \\), \\( I_a \\), \\( B \\) и \\( C \\).
-        """,
-        "date": "08/02/2025",
-        "solution": "solution",
-        "image": "assets/mansion-lemma.png"
-    }
-]
+
+def get_daily_tasks():
+    daily_tasks = tasks_cursor.execute('select * from tasks').fetchall()
+    print(daily_tasks)
+    daily_tasks = [{"id": task[0], "task": task[1], "date": task[2], "solution": task[3], "image": task[4]} for task in daily_tasks]
+    return daily_tasks
 
 
 def get_available_tasks():
     today = datetime.today()
     available_tasks = []
 
-    for task in daily_tasks:
+    for task in get_daily_tasks():
         task_date = datetime.strptime(task["date"], "%d/%m/%Y")
         if task_date <= today:
             available_tasks.append(task)
 
     return available_tasks
-
-
-BOT_TOKEN = '7441012240:AAGzlI9z_MaigMXBKX9paqQueGj-NF2h8Cs'
-secret_key = hmac.new(BOT_TOKEN.encode(), b"WebAppData", hashlib.sha256).digest()
-
-
-@app.route('/auth', methods=['POST'])
-def auth():
-    data = request.json
-
-    signature = hmac.new(secret_key, msg=json.dumps(data).encode(), digestmod=hashlib.sha256).hexdigest()
-
-    if signature == data['hash']:
-        return jsonify({
-            'status': 'success',
-            'user': {
-                'id': data['id'],
-                'username': data['username'],
-                'first_name': data['first_name'],
-                'last_name': data['last_name']
-            }
-        })
-    else:
-        return jsonify({'status': 'error', 'message': 'Invalid signature'}), 400
 
 
 @app.before_request
@@ -99,6 +54,13 @@ def add_cors_headers():
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     return jsonify(get_available_tasks())
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    user = cursor.execute("SELECT * FROM users WHERE username = ?", (data['username'],)).fetchone()
+    return jsonify({'status': 'OK', 'user': user})
 
 
 if __name__ == '__main__':
