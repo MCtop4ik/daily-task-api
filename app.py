@@ -24,8 +24,8 @@ CORS(app)
 
 def get_daily_tasks():
     daily_tasks = tasks_cursor.execute('select * from tasks').fetchall()
-    print(daily_tasks)
-    daily_tasks = [{"id": task[0], "task": task[1], "date": task[2], "solution": task[3], "image": task[4]} for task in daily_tasks]
+    daily_tasks = [{"id": task[0], "task": task[1], "date": task[2], "solution": task[3], "image": task[4]} for task in
+                   daily_tasks]
     return daily_tasks
 
 
@@ -37,6 +37,7 @@ def get_available_tasks():
         task_date = datetime.strptime(task["date"], "%d/%m/%Y")
         if task_date <= today:
             available_tasks.append(task)
+    available_tasks.sort(key=lambda t: datetime.strptime(t["date"], "%d/%m/%Y"), reverse=True)
 
     return available_tasks
 
@@ -54,6 +55,29 @@ def add_cors_headers():
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     return jsonify(get_available_tasks())
+
+
+@app.route('/create-task', methods=['POST'])
+def create_task():
+    data = request.json
+    tasks_cursor.execute("INSERT INTO tasks (task, date, solution, image) VALUES (?, ?, ?, ?)",
+                         (data['task'], data['date'], data['image'], data['solution']))
+    tasks_connection.commit()
+    return jsonify({'status': 'OK'})
+
+
+@app.route('/edit-task', methods=['POST'])
+def edit_task():
+    data = request.json
+    return jsonify({'status': 'OK'})
+
+
+@app.route('/delete-task', methods=['POST'])
+def delete_task():
+    data = request.json
+    tasks_cursor.execute("DELETE FROM tasks WHERE id = ?", (data['task_id'],))
+    tasks_connection.commit()
+    return jsonify({'status': 'OK'})
 
 
 @app.route('/login', methods=['POST'])
